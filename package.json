@@ -1,0 +1,9 @@
+{
+  "name": "dicey-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix Backend run build",
+    "start": "npm --prefix Backend run start"
+  }
+}
