@@ -106,11 +106,15 @@ const clientPath = possibleClientPaths.find((p) => fs.existsSync(p));
 
 if (clientPath) {
   app.use(express.static(clientPath));
-  app.get('*', (req: Request, res: Response, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return next();
+  app.use((req: Request, res: Response, next) => {
+    if (
+      req.method === 'GET' &&
+      !req.path.startsWith('/api') &&
+      !req.path.startsWith('/health')
+    ) {
+      return res.sendFile(path.join(clientPath, 'index.html'));
     }
-    return res.sendFile(path.join(clientPath, 'index.html'));
+    return next();
   });
 }
 
