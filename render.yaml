@@ -1,0 +1,71 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. Backend Web Service (Node.js + Express + Socket.IO + Mongoose)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: dicey-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: Backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: dicey-frontend
+          property: url
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: onboarding@resend.dev
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "200"
+
+  # ---------------------------------------------------------------------------
+  # 2. Frontend Web Application (React + Vite SPA)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: dicey-frontend
+    runtime: static
+    plan: free
+    region: oregon
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: dicey-backend
+          property: url
+          append: /api/v1
+      - key: VITE_SOCKET_URL
+        fromService:
+          type: web
+          name: dicey-backend
+          property: url
