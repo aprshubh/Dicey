@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
+import path from 'path';
+import fs from 'fs';
 import { env } from './shared/config/env.config';
 import { generalLimiter } from './shared/middlewares/rateLimiter.middleware';
 import { notFoundHandler } from './shared/middlewares/notFound.middleware';
@@ -18,7 +20,12 @@ const app: Application = express();
 app.set('trust proxy', 1);
 
 // Security HTTP headers
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // CORS configuration
 const allowedOrigins = [
@@ -87,7 +94,27 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/friends', friendsRoutes);
 app.use('/api/v1/ludo', ludoRoutes);
 
-// 404 Not Found Middleware
+// Static Client Serving (Fullstack Single App)
+const possibleClientPaths = [
+  path.resolve(__dirname, '../client'),
+  path.resolve(__dirname, '../../Frontend/dist'),
+  path.resolve(process.cwd(), 'client'),
+  path.resolve(process.cwd(), 'Frontend/dist'),
+];
+
+const clientPath = possibleClientPaths.find((p) => fs.existsSync(p));
+
+if (clientPath) {
+  app.use(express.static(clientPath));
+  app.get('*', (req: Request, res: Response, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    return res.sendFile(path.join(clientPath, 'index.html'));
+  });
+}
+
+// 404 Not Found Middleware (For API routes that don't match)
 app.use(notFoundHandler);
 
 // Centralized Global Error Handler

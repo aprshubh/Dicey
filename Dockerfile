@@ -1,38 +1,49 @@
-# Multi-stage Dockerfile for Dicey Backend (Root context for Render)
-FROM node:20-alpine AS builder
+# Multi-stage Dockerfile for Dicey Fullstack (Frontend + Backend on single port)
 
-WORKDIR /app
+# ---------------------------------------------------------------------------
+# Stage 1: Build React Frontend
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/Frontend
 
-# Copy Backend package files
-COPY Backend/package*.json Backend/tsconfig.json ./
-
-# Install all dependencies including build tools
+COPY Frontend/package*.json ./
 RUN npm ci
 
-# Copy Backend source code
-COPY Backend/src ./src
-
-# Compile TypeScript
+COPY Frontend/ ./
 RUN npm run build
 
-# Stage 2: Production runner
-FROM node:20-alpine AS runner
+# ---------------------------------------------------------------------------
+# Stage 2: Build Express & Socket.IO Backend
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS backend-builder
+WORKDIR /app/Backend
 
+COPY Backend/package*.json Backend/tsconfig.json ./
+RUN npm ci
+
+COPY Backend/src/ ./src/
+RUN npm run build
+
+# ---------------------------------------------------------------------------
+# Stage 3: Production Runner
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=10000
 
-# Copy package files
+# Install production dependencies for Backend
 COPY Backend/package*.json ./
-
-# Install production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy compiled files
-COPY --from=builder /app/dist ./dist
+# Copy compiled backend code
+COPY --from=backend-builder /app/Backend/dist ./dist
 
-# Use non-root node user
+# Copy built frontend SPA assets
+COPY --from=frontend-builder /app/Frontend/dist ./client
+
+# Use non-root node user for container security
 USER node
 
 EXPOSE 10000
