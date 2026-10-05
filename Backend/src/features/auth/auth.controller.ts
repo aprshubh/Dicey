@@ -97,7 +97,10 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const profile = await authService.getCurrentUser(userId);
-  return ApiResponse.success(res, 'User profile fetched successfully', profile);
+  return ApiResponse.success(res, 'User profile fetched successfully', {
+    user: profile,
+    ...profile,
+  });
 });
 
 export const checkPasswordStrength = asyncHandler(async (req: Request, res: Response) => {

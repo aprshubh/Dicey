@@ -33,11 +33,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const res = await authApi.getMe();
-      if (res && (res as any).data?.user) {
-        const u = (res as any).data.user;
+      const u = (res as any)?.data?.user || (res as any)?.data;
+      if (u && (u.id || u._id || u.email)) {
         setUser(u);
         tokenStorage.setUser(u);
-        socketService.connect();
+        socketService.reconnectWithToken(token);
       } else {
         tokenStorage.clear();
         setUser(null);

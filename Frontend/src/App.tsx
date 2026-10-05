@@ -89,6 +89,7 @@ const MainApp: React.FC = () => {
     });
 
     socket.on('game_started', (data: { gameState: GameState }) => {
+      setIsQueueModalOpen(false);
       setGameState(data.gameState);
       setView('ARENA');
       soundFX.playClick();

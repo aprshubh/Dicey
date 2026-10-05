@@ -222,7 +222,15 @@ class MatchmakingService {
     // Connect real human sockets to the room channel and notify them
     matchedTickets.forEach((ticket) => {
       if (!ticket.isBot) {
-        const playerSocket = io.sockets.sockets.get(ticket.socketId);
+        let playerSocket = io.sockets.sockets.get(ticket.socketId);
+        if (!playerSocket) {
+          for (const [, s] of io.sockets.sockets) {
+            if (s.data?.user?.id === ticket.userId) {
+              playerSocket = s;
+              break;
+            }
+          }
+        }
         if (playerSocket) {
           playerSocket.join(roomCode);
           playerSocket.data.currentRoom = roomCode;
@@ -234,6 +242,8 @@ class MatchmakingService {
             color: playerColor,
             gameState,
           });
+        } else {
+          logger.warn(`⚠️ Could not find live socket for player ${ticket.name} (${ticket.userId})`);
         }
       }
     });
